@@ -21,7 +21,7 @@ extern "C" {
 #define LEFT_ADJUST_MOTOR_GPIO_PORT          GPIOD
 #define LEFT_ADJUST_MOTOR_PIN_SET()          GPIO_SetBits(LEFT_ADJUST_MOTOR_GPIO_PORT, LEFT_ADJUST_MOTOR_PIN)
 #define LEFT_ADJUST_MOTOR_PIN_RESET()        GPIO_ResetBits(LEFT_ADJUST_MOTOR_GPIO_PORT, LEFT_ADJUST_MOTOR_PIN)
-#define GET_LEFT_ADJUST_MOTOR_PIN_STATUS     GPIO_ReadOutputDataBit(LEFT_ADJUST_MOTOR_GPIO_PORT, LEFT_ADJUST_MOTOR_PIN)
+#define GET_LEFT_ADJUST_MOTOR_PIN_STATUS()     GPIO_ReadOutputDataBit(LEFT_ADJUST_MOTOR_GPIO_PORT, LEFT_ADJUST_MOTOR_PIN)
     //方向
 #define LEFT_ADJUST_MOTOR_DIR_PIN            GPIO_Pin_10
 #define LEFT_ADJUST_MOTOR_DIR_GPIO_PORT      GPIOD    
@@ -32,7 +32,7 @@ extern "C" {
 #define RIGHT_ADJUST_MOTOR_GPIO_PORT         GPIOD
 #define RIGHT_ADJUST_MOTOR_PIN_SET()         GPIO_SetBits(RIGHT_ADJUST_MOTOR_GPIO_PORT, RIGHT_ADJUST_MOTOR_PIN)
 #define RIGHT_ADJUST_MOTOR_PIN_RESET()       GPIO_ResetBits(RIGHT_ADJUST_MOTOR_GPIO_PORT, RIGHT_ADJUST_MOTOR_PIN)      
-#define GET_RIGHT_ADJUST_MOTOR_PIN_STATUS    GPIO_ReadOutputDataBit(RIGHT_ADJUST_MOTOR_GPIO_PORT, RIGHT_ADJUST_MOTOR_PIN)
+#define GET_RIGHT_ADJUST_MOTOR_PIN_STATUS()    GPIO_ReadOutputDataBit(RIGHT_ADJUST_MOTOR_GPIO_PORT, RIGHT_ADJUST_MOTOR_PIN)
     //方向
 #define RIGHT_ADJUST_MOTOR_DIR_PIN            GPIO_Pin_11
 #define RIGHT_ADJUST_MOTOR_DIR_GPIO_PORT      GPIOD    
@@ -172,8 +172,22 @@ typedef enum cutMotorStatus_t{
     CUT_STOP_STATUS,
 }CutMotorStatus_type;
 
+#define QUEUE_MAX_SIZE	20
+typedef struct PositonInfo
+{
+	int32_t position;
+	BOOL enable;
+}PositonInfo_Type;
+typedef struct cutPositionInfo_t
+{
+	PositonInfo_Type cutPositonInfo[QUEUE_MAX_SIZE];
+	uint32_t qfront; //队头
+	uint32_t qrear;  //队尾
+}CutPositionInfoQueue_Type;
+
 MOTOR_EXTERN MOTOR_STATUS_TYPE leftMotorStatus;
 MOTOR_EXTERN MOTOR_STATUS_TYPE rightMotorStatus;
+MOTOR_EXTERN CutPositionInfoQueue_Type cutPositonInfoQueue;
 
 MOTOR_EXTERN CameraMotorStatus_type cameraMotorStatus;
 MOTOR_EXTERN CutMotorStatus_type cutMoveMotorStatus;
@@ -222,9 +236,32 @@ MOTOR_EXTERN int32_t cameraOriginPosition;
 MOTOR_EXTERN int32_t cameraMotorRange; //总量程
 MOTOR_EXTERN BOOL f_cameraCheckEnable;
 MOTOR_EXTERN uint8_t validCount;
+MOTOR_EXTERN int32_t findValidPosition;
+MOTOR_EXTERN BOOL f_findValidPosition;
+MOTOR_EXTERN uint32_t cutValidPosition;
+MOTOR_EXTERN BOOL f_cutValidPosition;
+MOTOR_EXTERN BOOL f_cutCheckEnable;
+MOTOR_EXTERN BOOL f_motorResumeEnable;
+MOTOR_EXTERN uint32_t checkPointNum;
+MOTOR_EXTERN uint32_t stopDelay;
+MOTOR_EXTERN BOOL f_adjustMotorStop;
 
+MOTOR_EXTERN BOOL f_testMotorStop;
+MOTOR_EXTERN uint32_t testMotorStopPluseCount;
+MOTOR_EXTERN BOOL f_motorStopAdjust;
+
+MOTOR_EXTERN uint32_t markPositionArr[10];
+MOTOR_EXTERN uint32_t markNum;
+MOTOR_EXTERN uint32_t spaceDistance;
+MOTOR_EXTERN BOOL f_spaceStopExe;
 
 //切割电机
+typedef enum ADJUST_MOTOR_STATUS_T
+{
+	adjustMotorStatus_normal = 1,
+	adjustMotorStatus_move,
+}AdjustMotorStatusType;
+
 #define CUT_MOVE_MOTOR_MAX_RANG   0xabe0
 MOTOR_EXTERN BOOL cutMoveMotorRunEnable;
 MOTOR_EXTERN BOOL cutMoveMotorStopEnable;
@@ -232,6 +269,7 @@ MOTOR_EXTERN uint32_t cutMoveMotorCurPeriod;
 MOTOR_EXTERN uint32_t cutMoveMotorDstPeriod;
 MOTOR_EXTERN uint32_t cutMoveMotorCurPeriodIndex;
 MOTOR_EXTERN uint32_t ccutMoveMotorDstPeriodIndex;
+MOTOR_EXTERN AdjustMotorStatusType adjustMotorStatus;
 
 MOTOR_EXTERN uint8_t cutMoveMotroDir;
 MOTOR_EXTERN int32_t cutMoveMotorPosition;

@@ -170,6 +170,21 @@ void TIM1_UP_IRQHandler()
                 cameraMotorStatus = CAMERA_STOP_STATUS;
             }
         }
+				
+//						if(cutValidPosition >= (8000) && f_cutCheckEnable) //300
+//						//if(cutValidPosition >= (8000) && f_cutCheckEnable)
+//						//if(cutValidPosition >= (8250) && f_cutCheckEnable) //100
+//						{
+//							f_cutCheckEnable = FALSE;
+//							f_motorResumeEnable = TRUE;
+//							//cutValidPosition = 0;
+//							leftMotorControl(MOTOR_STOP, 0);
+//							rightMotorControl(MOTOR_STOP, 0);
+////							leftMotorEnable = FALSE;
+////							rightMotorEnable = FALSE;
+//							f_adjustMotorStop = TRUE;
+//							stopDelay = 0;
+//						}
     }
 }
 
@@ -196,8 +211,18 @@ void TIM2_IRQHandler()
                 }
                 else if(leftMotorCurPeriod < leftMotorDstPeriod)//减速
                 {
-                    if(leftMotorCurPeriodIndex > 0)
-                        leftMotorCurPeriodIndex--;
+										if(f_adjustMotorStop)
+										{
+											if(leftMotorCurPeriodIndex >= 200)
+													leftMotorCurPeriodIndex -= 200;
+											else
+												leftMotorCurPeriodIndex = 0;
+										}
+										else
+										{
+											if(leftMotorCurPeriodIndex > 0)
+													leftMotorCurPeriodIndex--;
+										}
                     leftMotorCurPeriod = motor_profile[leftMotorCurPeriodIndex];
                     setTIMxPeriod(TIM2, leftMotorCurPeriod); 
                 }
@@ -212,8 +237,37 @@ void TIM2_IRQHandler()
             else
             {
                 GPIO_SetBits(LEFT_ADJUST_MOTOR_GPIO_PORT, LEFT_ADJUST_MOTOR_PIN);
+								if(f_cutCheckEnable)
+								{
+									cutValidPosition++;
+								}
+								if(f_motorStopAdjust)
+								{
+									spaceDistance++;
+								}
+								//for(int i = 0; i < QUEUE_MAX_SIZE; i++)
+								{
+									
+								}
             }
         }
+				
+						//	if(cutValidPosition >= (6800) && f_cutCheckEnable)
+						//if(cutValidPosition >= (7300) && f_cutCheckEnable)//400
+						//if(cutValidPosition >= (7700) && f_cutCheckEnable) //300
+					 //if(cutValidPosition >= (8000) && f_cutCheckEnable) //200
+						if(cutValidPosition >= (8250) && f_cutCheckEnable) //100
+						{
+							f_cutCheckEnable = FALSE;
+							f_motorResumeEnable = TRUE;
+							//cutValidPosition = 0;
+							leftMotorControl(MOTOR_STOP, 0);
+							rightMotorControl(MOTOR_STOP, 0);
+//							leftMotorEnable = FALSE;
+//							rightMotorEnable = FALSE;
+							f_adjustMotorStop = TRUE;
+							stopDelay = 0;
+						}
     }
 }
 
@@ -239,8 +293,18 @@ void TIM3_IRQHandler()
                 }
                 else if(rightMotorCurPeriod < rightMotorDstPeriod)//减速
                 {
-                    if(rightMotorCurPeriodIndex > 0)
-                        rightMotorCurPeriodIndex--;
+										if(f_adjustMotorStop)
+										{
+											if(rightMotorCurPeriodIndex >= 200)
+													rightMotorCurPeriodIndex -= 200;
+											else
+												rightMotorCurPeriodIndex = 0;
+										}
+										else
+										{
+											if(rightMotorCurPeriodIndex > 0)
+													rightMotorCurPeriodIndex--;
+										}
                     rightMotorCurPeriod = motor_profile[rightMotorCurPeriodIndex];
                     setTIMxPeriod(TIM3, rightMotorCurPeriod); 
                 }
@@ -467,8 +531,8 @@ void TIM6_IRQHandler() //纵切刀电机
     {
         TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
 			
-				if(cutMoveMotorStatus == CUT_BACKMOVE_STATUS || cutMoveMotorStatus == CUT_STOPWAIT_STATUS)
-				//if(1)
+				//if(cutMoveMotorStatus == CUT_BACKMOVE_STATUS || cutMoveMotorStatus == CUT_STOPWAIT_STATUS)
+				if(0)
 				{
 						if(cutMoveMotorRunEnable)
 						{
@@ -518,17 +582,29 @@ void TIM6_IRQHandler() //纵切刀电机
 								}
 							}
 				}
-				else if(cutMoveMotorStatus == CUT_MOVEORIGIN_STATUS || cutMoveMotorStatus == CUT_READY_STATUS)
+				else //if(cutMoveMotorStatus == CUT_MOVEORIGIN_STATUS || cutMoveMotorStatus == CUT_READY_STATUS)
 				{
 #if 1       
         TIM_SetAutoreload(TIM6, cutMotor.step_delay);
         
         if(cutMotor.run_state != STOP){
-            if(GET_CUT_MOVE_MOTOR_PIN_STATUS() == Bit_SET)
-                CUT_MOVE_MOTOR_PIN_RESET();
-            else{
-                CUT_MOVE_MOTOR_PIN_SET();
-							cutMoveMotorPluseCount++;
+//            if(GET_CUT_MOVE_MOTOR_PIN_STATUS() == Bit_SET)
+//                CUT_MOVE_MOTOR_PIN_RESET();
+//            else{
+//                CUT_MOVE_MOTOR_PIN_SET();
+//							cutMoveMotorPluseCount++;
+//						}
+					
+						if(GET_LEFT_ADJUST_MOTOR_PIN_STATUS() == Bit_SET)
+								LEFT_ADJUST_MOTOR_PIN_RESET();
+						else
+								LEFT_ADJUST_MOTOR_PIN_SET();
+						
+						if(GET_RIGHT_ADJUST_MOTOR_PIN_STATUS() == Bit_SET)
+								RIGHT_ADJUST_MOTOR_PIN_RESET();
+						else{
+								RIGHT_ADJUST_MOTOR_PIN_SET();
+							spaceDistance++;
 						}
         }
         
@@ -543,10 +619,11 @@ void TIM6_IRQHandler() //纵切刀电机
             rest = 0;
             TIM_ITConfig(TIM6, TIM_IT_Update, DISABLE);
             CUT_MOVE_MOTOR_PIN_RESET();
-					
-						UsartSendArray(USART2, (uint8_t*)&cutMoveMotorPluseCount, 4);
+				
+						//UsartSendArray(USART2, (uint8_t*)&cutMoveMotorPluseCount, 4);
             cutMoveMotorPluseCount = 0;
 						f_cutMoveMotorStop = TRUE;
+						f_spaceStopExe = TRUE;
 					
             break;
 
@@ -638,8 +715,14 @@ void TIM7_IRQHandler()
                    if(cutRollMotorCurPeriod == motor_profile[0]) 
                    {
                        rollMotorEnable = FALSE;
+											f_testMotorStop = FALSE;
                    }
                 }
+								
+								if(f_testMotorStop)
+								{
+									testMotorStopPluseCount++;
+								}
             }
             else
             {

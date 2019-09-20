@@ -364,14 +364,14 @@ void cameraMotorResetHandler()
         case CAMERA_HADFOUND_STATUS:
             if(CameraMotorStopEnable)
             {
-                if(delayCount++ <= 1000*30)
+                if(delayCount++ <= 1000*1)
                     return;
                 delayCount = 0;
-                
+               
                 cameraMotorStatus = CAMERA_RUNING_STATUS;
-                leftMotorCurSpeed = 0x1f4;
+                leftMotorCurSpeed = 0x32;//0x1f4;
                 leftMotorControl(MOTOR_START, leftMotorCurSpeed);
-                rightMotorCurSpeed = 0x1f4;
+                rightMotorCurSpeed = 0x32;//0x1f4;
                 rightMotorControl(MOTOR_START, rightMotorCurSpeed);
             }
         case CAMERA_RUNING_STATUS:

@@ -43,16 +43,55 @@ int main(void)
     tsl1401Reset();
     systemStatus = SYSTEM_RESET;
     //cameraMotorStatus = CAMERA_RESET_START_STATUS;
+		cutValidPosition = 0;
+		f_cutCheckEnable = FALSE;
+		f_motorStopAdjust = FALSE;
+		f_motorResumeEnable = FALSE;
+		static uint32_t numIndex = 0;
+		adjustMotorStatus = adjustMotorStatus_normal;
     while (1)
     {
         if(f_1ms) //1ms
         {
             f_1ms = FALSE;
-//            cameraLimitHandler();
-//            paperLimitHandler();
-//            cutLimitHandler();
             cameraMotorResetHandler();
 						cutMotorResetHandler();
+												
+						if(adjustMotorStatus == adjustMotorStatus_move)
+						{
+								if(markNum && f_spaceStopExe && (!leftMotorEnable) && (!rightMotorEnable))
+								{
+										if(stopDelay++>=2000){
+										f_spaceStopExe = FALSE;
+									 if(numIndex < markNum){
+											stopDelay = 0;
+											f_cameraMotorStart = TRUE; 
+											motor3Device.motorInfo.step = markPositionArr[numIndex++];
+									 }
+									 else
+									 {
+										 adjustMotorStatus = adjustMotorStatus_normal;
+										 f_motorStopAdjust = FALSE;
+										 numIndex = 0;
+									 }
+								 }
+								}
+						}
+						else if(f_motorResumeEnable && (!leftMotorEnable) && (!rightMotorEnable) && stopDelay++>=2000)
+						//if(f_motorResumeEnable && stopDelay++>=500)
+						{
+								f_motorStopAdjust = FALSE;
+								f_adjustMotorStop = FALSE;
+							  f_motorResumeEnable = FALSE;
+								stopDelay = 0;
+								leftMotorCurSpeed = 0x32;//0x64;
+                leftMotorControl(MOTOR_START, leftMotorCurSpeed);
+                rightMotorCurSpeed = 0x32;//0x64;
+                rightMotorControl(MOTOR_START, rightMotorCurSpeed);
+						}else
+						{
+							numIndex = 0;
+						}
             
             time_1ms++;
             CCDTime++;
@@ -62,7 +101,7 @@ int main(void)
                 if(f_cameraMotorStart)
                 {
                     f_cameraMotorStart = FALSE;
-                    cutMotorAxisMoveRel(motor3Device.motorInfo.step, 200, 200, 900);
+                    cutMotorAxisMoveRel(motor3Device.motorInfo.step, 20, 20, 100);
                 }
             }
             if(CCDTime%6 == 0) //定时采样CCD的值

@@ -119,10 +119,10 @@ void timInit()
 	TIM_TimeBaseInitStruct.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM6, &TIM_TimeBaseInitStruct);
     
-    TIM_ARRPreloadConfig(TIM6, ENABLE);
+    //TIM_ARRPreloadConfig(TIM6, ENABLE);
     TIM_ClearFlag(TIM6, TIM_FLAG_Update);
     TIM_ClearITPendingBit(TIM6, TIM_IT_Update);
-    TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);
+    //TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);
     TIM_Cmd(TIM6, ENABLE);
     
     

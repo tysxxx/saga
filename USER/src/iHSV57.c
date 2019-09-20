@@ -258,7 +258,9 @@ void cutMotorAxisMoveRel(int32_t step, uint32_t accel, uint32_t decel, uint32_t 
     if(step != 0)
     {
 				cutMoveMotorPluseCount = 0;
-        CUT_MOVE_MOTOR_PIN_RESET();
+//        CUT_MOVE_MOTOR_PIN_RESET();
+				LEFT_ADJUST_MOTOR_PIN_RESET();
+				RIGHT_ADJUST_MOTOR_PIN_RESET();
         TIM_SetAutoreload(TIM6, cutMotor.step_delay);       //设置自动重装载
         TIM_ITConfig(TIM6, TIM_IT_Update, ENABLE);
     }

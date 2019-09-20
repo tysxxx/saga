@@ -137,6 +137,8 @@ void USART2_IRQHandler()
             }
             else if(UART_RxBuffer[0] == 0x44)
             {
+								f_testMotorStop = TRUE;
+								testMotorStopPluseCount = 0;
                 rollMotorControl(MOTOR_STOP, 0);
             }
         }else{

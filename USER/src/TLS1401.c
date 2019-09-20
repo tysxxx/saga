@@ -147,8 +147,9 @@ void filterBin(void)
 //判断是否是一个有效的标记
 void judgeValidFlag()
 {
-    #define HEIDIAN_VALID_NUM_THRESHOLD_MAX   20  //阈值
-    #define HEIDIAN_VALID_NUM_THRESHOLD_MIN   3
+    #define HEIDIAN_VALID_NUM_THRESHOLD_MAX   80  //阈值
+		#define HEIDIAN_VALID_NUM_THRESHOLD_MID   25
+    #define HEIDIAN_VALID_NUM_THRESHOLD_MIN   6
     
     uint8_t n = 0, i = 0;
     
@@ -203,27 +204,76 @@ void judgeValidFlag()
         //当相邻点的黑点超过一定数目才算是有效的
         if(heiDian.validPoint[0][128] != 0)//&& leftMotorEnable && rightMotorEnable)
         {
-            uint8_t heiDianMidPos = heiDian.validPoint[0][0] + heiDian.validPoint[0][128]/2;
+						uint8_t heidianNum = heiDian.validPoint[0][128];
+            static uint8_t heiDianMidPos = 0; //= heiDian.validPoint[0][0] + heiDian.validPoint[0][128]/2;
             
             static uint8_t first = 0;
             static uint32_t leftPeriod = 0, rightPeriod = 0;
             uint8_t speed = 0;
             uint16_t curSpeed = 0;
             
+						//判断是校正点还是切割点
+						if(heidianNum <= HEIDIAN_VALID_NUM_THRESHOLD_MID) //校正范围点
+						{
+							heiDianMidPos = heiDian.validPoint[0][0] + heidianNum/2;
+							f_cutValidPosition = TRUE;
+							//checkPointNum = 0;
+							//markNum = 0;
+						}
+						else	//切割范围点
+						{
+							//heiDianMidPos = heiDian.validPoint[0][0] + 0x12/2;
+			
+							if(cameraMotorStatus == CAMERA_RUNING_STATUS){
+									
+								  if(f_cutValidPosition)
+									{
+										//checkPointNum++;
+								  //USART_SendData(USART2, checkPointNum);
+									f_cutValidPosition = FALSE;	
+									
+									if(f_motorStopAdjust){
+										markPositionArr[markNum++] = spaceDistance;
+										spaceDistance = 0;
+										adjustMotorStatus = adjustMotorStatus_move;
+										f_spaceStopExe = TRUE;
+									}else{
+										f_motorStopAdjust = TRUE;
+										markNum = 0;
+										spaceDistance = 0;
+										stopDelay = 0;
+										
+										cutValidPosition = 0; //检测到切割点
+									f_cutCheckEnable = TRUE;
+									f_motorResumeEnable = FALSE;
+									}
+//										cutPositonInfoQueue.cutPositonInfo[cutPositonInfoQueue.qrear].enable = TRUE;
+//										cutPositonInfoQueue.cutPositonInfo[cutPositonInfoQueue.qrear].position = 0;
+//									cutPositonInfoQueue.qrear = (cutPositonInfoQueue.qrear + 1)%QUEUE_MAX_SIZE;
+//									if(checkPointNum >= 20)
+//											checkPointNum = 0;
+								}
+							}
+						}
            
-            if(f_cameraCheckEnable && cameraPosition >= cameraOriginPosition+6400*3){
-               
-                if(validCount++ >= 8)
-                {
-                    validCount = 0;
-                    if(cameraMotorStatus != CAMERA_HADFOUND_STATUS){
-                        f_cameraCheckEnable = FALSE;
-                        CameraMotorStopEnable = TRUE;
-                        cameraMotorDstPeriodIndex = 1;
-                        //USART_SendData(USART2, heiDianMidPos);
-                        cameraMotorStatus = CAMERA_HADFOUND_STATUS;
-                    }
-                }
+            if(f_cameraCheckEnable && cameraPosition >= cameraOriginPosition+6400*7){
+								if(heiDianMidPos < 64+16 && heiDianMidPos > 64-5)
+								{
+									//if(validCount++ >= 8)
+									//if(validCount++ >= 3)
+									{
+											validCount = 0;
+											if(cameraMotorStatus != CAMERA_HADFOUND_STATUS){
+													f_cameraCheckEnable = FALSE;
+													CameraMotorStopEnable = TRUE;
+													cameraMotorDstPeriodIndex = 1;
+													//USART_SendData(USART2, heiDianMidPos);
+													cameraMotorStatus = CAMERA_HADFOUND_STATUS;
+											}
+									}
+								}
+								else
+									validCount = 0;
             }else
 							validCount = 0;
             
@@ -231,7 +281,13 @@ void judgeValidFlag()
             
             if(leftMotorEnable && rightMotorEnable)
             {
+								if(!f_motorStopAdjust) //检测到切割点后就停止纠偏
                 adjustHandler(&heiDianMidPos); 
+								else
+								{
+									leftMotorControl(MOTOR_RUN, leftMotorCurSpeed);
+									rightMotorControl(MOTOR_RUN, rightMotorCurSpeed);  
+								}
                 #if 0
                 //判断黑点有效时的起始位置,从而决定电机的转动
                 if(heiDianMidPos < 64-10)
@@ -268,7 +324,8 @@ void judgeValidFlag()
         validCount =0;
     }
     
-    #undef HEIDIAN_VALID_NUM_THRESHOLD_MIN    
+    #undef HEIDIAN_VALID_NUM_THRESHOLD_MIN  
+		#undef HEIDIAN_VALID_NUM_THRESHOLD_MID
     #undef HEIDIAN_VALID_NUM_THRESHOLD_MAX
 }
 
@@ -276,38 +333,38 @@ void adjustHandlerLevel1(uint8_t* pos)
 {
     //250
     uint8_t midPos = *pos;
-    if(midPos < 64 - 3)
+    if(midPos < 64 - 5)
     {  
-        if(midPos < 64-20)
-        {
-            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed-20);
-            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed+50);  
-        }
-        else if(midPos < 64-50)
-        {
-            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed-40);
-            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed+80);  
-        }else
+        if(midPos < 64-10)
         {
             leftMotorControl(MOTOR_RUN, leftMotorCurSpeed-10);
-            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed+30);  
+            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed+20);  
         }
-    }
-    else if(midPos > 64 - 3)
-    {
-        if(midPos > 64+20)
+        else if(midPos < 64-15)
         {
-            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed+50);
-            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed-20);  
-        }
-        else if(midPos > 64+50)
-        {
-            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed+80);
-            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed-40);  
+            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed-15);
+            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed+15);  
         }else
         {
-            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed+30);
+            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed-5);
+            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed+10);  
+        }
+    }
+    else if(midPos > 64 + 5)
+    {
+        if(midPos > 64+10)
+        {
+            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed+20);
             rightMotorControl(MOTOR_RUN, rightMotorCurSpeed-10);  
+        }
+        else if(midPos > 64+15)
+        {
+            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed+15);
+            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed-15);  
+        }else
+        {
+            leftMotorControl(MOTOR_RUN, leftMotorCurSpeed+10);
+            rightMotorControl(MOTOR_RUN, rightMotorCurSpeed-5);  
         }
     }
     else
